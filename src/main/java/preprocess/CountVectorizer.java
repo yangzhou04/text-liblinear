@@ -1,5 +1,10 @@
 package preprocess;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.List;
@@ -17,9 +22,9 @@ import com.google.common.collect.Sets;
 
 public class CountVectorizer {
 
-    private Multiset<String>     counter;
+    private Multiset<String> counter;
     private Map<String, Integer> vocabularyMap;
-    private int                  count;
+    private int count;
 
     public CountVectorizer() {
         this.counter = HashMultiset.create();
@@ -36,7 +41,7 @@ public class CountVectorizer {
             }
         }
     }
-    
+
     public List<List<Entry<Integer, Integer>>>
             transform(List<List<String>> textX) {
         List<List<Entry<Integer, Integer>>> ret = Lists.newArrayList();
@@ -71,6 +76,25 @@ public class CountVectorizer {
         counter.clear();
         fit(textX);
         return transform(textX);
+    }
+
+    public static void serialize(CountVectorizer vectorizer, String filename)
+            throws IOException {
+        FileOutputStream fileOut = new FileOutputStream(filename);
+        ObjectOutputStream outStream = new ObjectOutputStream(fileOut);
+        outStream.writeObject(vectorizer);
+        outStream.close();
+        fileOut.close();
+    }
+
+    public static CountVectorizer deserialize(String filename)
+            throws IOException, ClassNotFoundException {
+        FileInputStream fileIn = new FileInputStream(filename);
+        ObjectInputStream in = new ObjectInputStream(fileIn);
+        CountVectorizer vectorizer = (CountVectorizer) in.readObject();
+        in.close();
+        fileIn.close();
+        return vectorizer;
     }
 
 }

@@ -1,7 +1,12 @@
 package classifier;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.io.Writer;
 import java.util.List;
 import java.util.Map.Entry;
@@ -19,12 +24,14 @@ import de.bwaldvogel.liblinear.Parameter;
 import de.bwaldvogel.liblinear.Problem;
 import de.bwaldvogel.liblinear.SolverType;
 
-public class TextLiblinear {
-    private double     bias;
+public class TextLiblinear implements Serializable {
+
+    private static final long serialVersionUID = 1833141383231227489L;
+    private double bias;
     private SolverType solverType;
-    private double     c;
-    private double     eps;
-    private Model      model;
+    private double c;
+    private double eps;
+    private Model model;
 
     public TextLiblinear() {
         this.bias = 0;
@@ -47,13 +54,12 @@ public class TextLiblinear {
             throw new IllegalArgumentException(
                     "X and y's length are different");
 
-        
-
         Problem problem = null;
         File tmp = null;
         try {
             tmp = File
-                    .createTempFile(String.valueOf(System.currentTimeMillis()), "");
+                    .createTempFile(String.valueOf(System.currentTimeMillis()),
+                            "");
             Writer writer =
                     Files.asCharSink(tmp, Charsets.UTF_8).openBufferedStream();
             for (int i = 0; i < X.size(); i++) {
@@ -79,7 +85,8 @@ public class TextLiblinear {
                 tmp.deleteOnExit();
             System.exit(-1);
         } catch (IOException e) {
-            System.err.println("Writing tmp file error, please check your permission");
+            System.err.println(
+                    "Writing tmp file error, please check your permission");
             System.exit(-1);
         }
 
@@ -113,6 +120,25 @@ public class TextLiblinear {
             instance[i++] = new FeatureNode(entry.getKey(), entry.getValue());
         }
         return (int) Linear.predict(model, instance);
+    }
+
+    public static void serialize(TextLiblinear model, String filename)
+            throws IOException {
+        FileOutputStream fileOut = new FileOutputStream(filename);
+        ObjectOutputStream outStream = new ObjectOutputStream(fileOut);
+        outStream.writeObject(model);
+        outStream.close();
+        fileOut.close();
+    }
+
+    public static TextLiblinear deserialize(String filename)
+            throws IOException, ClassNotFoundException {
+        FileInputStream fileIn = new FileInputStream(filename);
+        ObjectInputStream in = new ObjectInputStream(fileIn);
+        TextLiblinear model = (TextLiblinear) in.readObject();
+        in.close();
+        fileIn.close();
+        return model;
     }
 
 }

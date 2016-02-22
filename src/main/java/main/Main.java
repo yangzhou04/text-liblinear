@@ -22,7 +22,7 @@ import preprocess.Tokenizer;
 import represent.Struct;
 
 public class Main {
-
+    
     public static double getAccuracy(List<String> textX, List<String> texty) {
         Struct<List<String>> struct = TrainTestSplit.split(textX, texty,
                 System.currentTimeMillis(), 0.8);
