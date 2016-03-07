@@ -1,16 +1,23 @@
 package preprocess;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.io.Writer;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.Files;
 
 import classifier.TextLiblinear;
 
@@ -56,22 +63,31 @@ public class LabelEncoder implements Serializable {
         return reverseLabelMap.get(i);
     }
 
-    public static void serialize(LabelEncoder encoder, String filename) throws IOException {
-        FileOutputStream fileOut = new FileOutputStream(filename);
-        ObjectOutputStream outStream = new ObjectOutputStream(fileOut);
-        outStream.writeObject(encoder);
-        outStream.close();
-        fileOut.close();
+    public void serialize(String filename) throws IOException {
+    	Writer w = Files.asCharSink(new File(filename), Charsets.UTF_8).openBufferedStream();
+    	w.write(String.valueOf(this.count)); // line 0
+    	w.write("\n====\n"); // line 1
+    	w.write(Joiner.on(",").withKeyValueSeparator(":").join(labelMap)); // line 2
+    	w.write("\n====\n"); // line 3
+    	w.write(Joiner.on(",").withKeyValueSeparator(":").join(reverseLabelMap)); // line 4
+    	w.close();
     }
 
-    public static LabelEncoder deserialize(String filename)
+    public LabelEncoder deserialize(String filename)
             throws IOException, ClassNotFoundException {
-        FileInputStream fileIn = new FileInputStream(filename);
-        ObjectInputStream in = new ObjectInputStream(fileIn);
-        LabelEncoder encoder =  (LabelEncoder) in.readObject();
-        in.close();
-        fileIn.close();
-        return encoder;
+    	List<String> lines = Files.readLines(new File(filename), Charsets.UTF_8);
+    	if (lines.size() != 5 || !lines.get(1).equals("====") 
+				|| !lines.get(3).equals("====")) 
+			throw new IOException("deserialize file format error");
+    	
+    	this.count = Integer.parseInt(lines.get(0));
+		for (Entry<String, String> e : Splitter.on(",").withKeyValueSeparator(":").split(lines.get(2)).entrySet())
+			this.labelMap.put(e.getKey(), Integer.parseInt(e.getValue()));
+		
+		for (Entry<String, String> e : Splitter.on(",").withKeyValueSeparator(":").split(lines.get(4)).entrySet())
+			this.reverseLabelMap.put(Integer.parseInt(e.getKey()), e.getValue());
+		
+    	return this;
     }
 
 }

@@ -1,6 +1,5 @@
 package preprocess;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.After;
@@ -13,12 +12,11 @@ import junit.framework.Assert;
 
 public class LabelEncoderTest {
 
-    private LabelEncoder encoder;
+    
     private List<String> source;
     
     @Before
     public void setUp() throws Exception {
-        encoder = new LabelEncoder();
         source = Lists.newArrayList("0", "1", "1", "0", "0");
     }
 
@@ -28,14 +26,16 @@ public class LabelEncoderTest {
 
     @Test
     public void testSerializeAndDeserialize() throws Exception {
+    	LabelEncoder encoder = new LabelEncoder();
         encoder.fit(source);
-        List<Integer> test1 = encoder.transform(source);
-        LabelEncoder.serialize(encoder, "encoder.ser");
-        LabelEncoder encoder2 = LabelEncoder.deserialize("encoder.ser");
-        List<Integer> test2 = encoder2.transform(source);
+        List<Integer> result = encoder.transform(source);
+        encoder.serialize("data/encoder.ser");
+        LabelEncoder encoder2 = new LabelEncoder();
+        encoder2.deserialize("data/encoder.ser");
+        List<Integer> result2 = encoder2.transform(source);
         
-        for (int i = 0; i < test1.size(); i++) {
-            Assert.assertEquals(test1.get(i), test2.get(i));
+        for (int i = 0; i < result.size(); i++) {
+            Assert.assertEquals(result.get(i), result2.get(i));
         }
     }
 }

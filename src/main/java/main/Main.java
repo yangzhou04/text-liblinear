@@ -62,9 +62,9 @@ public class Main {
         
         CountVectorizer countVectorizer = new CountVectorizer();
         List<List<Entry<Integer, Integer>>> trainX =
-                countVectorizer.fitTransform(ngramTrainX);
+                (List<List<Entry<Integer, Integer>>>) countVectorizer.fitTransform(ngramTrainX);
         List<List<Entry<Integer, Integer>>> testX =
-                countVectorizer.fitTransform(ngramTestX);
+                (List<List<Entry<Integer, Integer>>>) countVectorizer.fitTransform(ngramTestX);
 
         LabelEncoder labelEncoder = new LabelEncoder();
         List<Integer> trainy = labelEncoder.fitTransform(textTrainy);
@@ -81,7 +81,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         List<String> lines = Files.readLines(
-                new File("data/youxiao_wenju_preprocess"), Charsets.UTF_8);
+                new File("data/wenju_label"), Charsets.UTF_8);
 
         List<String> textX = Lists.newArrayList();
         List<String> texty = Lists.newArrayList();
@@ -92,27 +92,41 @@ public class Main {
             texty.add(parts.get(1));
         }
 
-        double maxAcc = 0,
-                minAcc = 1,
-                avgAcc = 0;
-        int times = 100;
+        LabelEncoder le = new LabelEncoder();
+        List<Integer> y = le.fitTransform(texty);
+        le.serialize("data/le.txt");
+        Tokenizer tokenizer = new NGrammer();
+        List<List<String>> tokenX = tokenizer.parse(textX, TokenizeType.NGRAM_ALL);
+        CountVectorizer vec = new CountVectorizer();
+        List<List<Entry<Integer, Integer>>> X = (List<List<Entry<Integer, Integer>>>) vec.fitTransform(tokenX);
+        vec.serialize("data/vec.txt");
+        TextLiblinear model = new TextLiblinear();
+        model.fit(X, y);
+        model.serialize("data/model.txt");
+        
+        
+        
+//        double maxAcc = 0,
+//                minAcc = 1,
+//                avgAcc = 0;
+//        int times = 30;
+//
+//        for (int i = 0; i < times; i++) {
+//            double acc = getAccuracy(textX, texty);
+//            if (acc < minAcc)
+//                minAcc = acc;
+//            if (acc > maxAcc)
+//                maxAcc = acc;
+//            avgAcc += acc;
+//            System.out.print(i+",");
+//            if ((i+1) % 20 == 0)
+//                System.out.println();
+//        }
 
-        for (int i = 0; i < times; i++) {
-            double acc = getAccuracy(textX, texty);
-            if (acc < minAcc)
-                minAcc = acc;
-            if (acc > maxAcc)
-                maxAcc = acc;
-            avgAcc += acc;
-            System.out.print(i+",");
-            if ((i+1) % 20 == 0)
-                System.out.println();
-        }
-
-        System.out.println();
-        System.out.println(maxAcc);
-        System.out.println(minAcc);
-        System.out.println((double) avgAcc / times);
+//        System.out.println();
+//        System.out.println(maxAcc);
+//        System.out.println(minAcc);
+//        System.out.println((double) avgAcc / times);
     }
 
 }

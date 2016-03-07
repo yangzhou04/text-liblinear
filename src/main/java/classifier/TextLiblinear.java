@@ -1,14 +1,11 @@
 package classifier;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.Writer;
 import java.util.List;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Map.Entry;
 
 import com.google.common.base.Charsets;
@@ -27,15 +24,15 @@ import de.bwaldvogel.liblinear.SolverType;
 public class TextLiblinear implements Serializable {
 
     private static final long serialVersionUID = 1833141383231227489L;
-    private double bias;
-    private SolverType solverType;
-    private double c;
-    private double eps;
-    private Model model;
+    public double bias;
+    public SolverType solverType;
+    public double c;
+    public double eps;
+    public Model model;
 
     public TextLiblinear() {
         this.bias = 0;
-        this.solverType = SolverType.L2R_LR;
+        this.solverType = SolverType.L2R_L2LOSS_SVC;
         this.c = 1;
         this.eps = 0.01;
     }
@@ -121,24 +118,80 @@ public class TextLiblinear implements Serializable {
         }
         return (int) Linear.predict(model, instance);
     }
-
-    public static void serialize(TextLiblinear model, String filename)
-            throws IOException {
-        FileOutputStream fileOut = new FileOutputStream(filename);
-        ObjectOutputStream outStream = new ObjectOutputStream(fileOut);
-        outStream.writeObject(model);
-        outStream.close();
-        fileOut.close();
+    
+    public List<Entry<Integer, Double>> predictProbAll(List<List<Entry<Integer, Integer>>> X) {
+    	List<Entry<Integer, Double>> ret = Lists.newArrayList();
+        for (List<Entry<Integer, Integer>> textx : X) {
+            ret.add(predictProbOne(textx));
+        }
+        return ret;
+    }
+    
+    public Entry<Integer, Double> predictProbOne(List<Entry<Integer, Integer>> x) {
+    	Feature[] instance = new Feature[x.size()];
+        int i = 0;
+        for (Entry<Integer, Integer> entry : x) {
+            instance[i++] = new FeatureNode(entry.getKey(), entry.getValue());
+        }
+        int ybar = (int) Linear.predict(model, instance);
+        
+        double[] probEstimates = new double[model.getNrClass()];
+        Linear.predictProbability(model, instance, probEstimates);
+        // liblinear predict index start from 1
+        return new SimpleEntry<Integer, Double>(ybar, probEstimates[ybar-1]);
     }
 
-    public static TextLiblinear deserialize(String filename)
+    public void serialize(String filename)
+            throws IOException {
+    	Writer w = Files.asCharSink(new File(filename), Charsets.UTF_8).openBufferedStream();
+    	w.write(String.valueOf(this.bias)); // line 0
+    	w.write("\n====\n"); // line 1
+    	if (solverType == SolverType.L2R_LR) w.write("L2R_LR");
+    	if (solverType == SolverType.L2R_L2LOSS_SVC_DUAL) w.write("L2R_L2LOSS_SVC_DUAL");
+    	if (solverType == SolverType.L2R_L2LOSS_SVC) w.write("L2R_L2LOSS_SVC");
+    	if (solverType == SolverType.L2R_L1LOSS_SVC_DUAL) w.write("L2R_L1LOSS_SVC_DUAL");
+    	if (solverType == SolverType.MCSVM_CS) w.write("MCSVM_CS");
+    	if (solverType == SolverType.L1R_L2LOSS_SVC) w.write("L1R_L2LOSS_SVC");
+    	if (solverType == SolverType.L1R_LR) w.write("L1R_LR");
+    	if (solverType == SolverType.L2R_LR_DUAL) w.write("L2R_LR_DUAL");
+    	if (solverType == SolverType.L2R_L2LOSS_SVR) w.write("L2R_L2LOSS_SVR");
+    	if (solverType == SolverType.L2R_L2LOSS_SVR_DUAL) w.write("L2R_L2LOSS_SVR_DUAL");
+    	if (solverType == SolverType.L2R_L1LOSS_SVR_DUAL) w.write("L2R_L1LOSS_SVR_DUAL"); // line 2
+    	w.write("\n====\n"); // line 3
+    	w.write(String.valueOf(this.c)); // line 4
+    	w.write("\n====\n"); // line 5
+    	w.write(String.valueOf(this.eps)); // line 6
+    	if (model != null)
+    		model.save(new File(filename+"__.__model.txt"));
+    	w.close();
+    }
+
+    public TextLiblinear deserialize(String filename)
             throws IOException, ClassNotFoundException {
-        FileInputStream fileIn = new FileInputStream(filename);
-        ObjectInputStream in = new ObjectInputStream(fileIn);
-        TextLiblinear model = (TextLiblinear) in.readObject();
-        in.close();
-        fileIn.close();
-        return model;
+    	List<String> lines = Files.readLines(new File(filename), Charsets.UTF_8);
+		if (lines.size() != 7 || !lines.get(1).equals("====") 
+				|| !lines.get(3).equals("====") 
+				|| !lines.get(5).equals("====")) 
+			throw new IOException("deserialize file format error");
+    	
+		this.bias = Double.parseDouble(lines.get(0));
+		if (lines.get(2).equals("L2R_LR")) this.solverType = SolverType.L2R_LR;
+		if (lines.get(2).equals("L2R_L2LOSS_SVC_DUAL")) this.solverType = SolverType.L2R_L2LOSS_SVC_DUAL;
+		if (lines.get(2).equals("L2R_L2LOSS_SVC")) this.solverType = SolverType.L2R_L2LOSS_SVC;
+		if (lines.get(2).equals("L2R_L1LOSS_SVC_DUAL")) this.solverType = SolverType.L2R_L1LOSS_SVC_DUAL;
+		if (lines.get(2).equals("MCSVM_CS")) this.solverType = SolverType.MCSVM_CS;
+		if (lines.get(2).equals("L1R_L2LOSS_SVC")) this.solverType = SolverType.L1R_L2LOSS_SVC;
+		if (lines.get(2).equals("L1R_LR")) this.solverType = SolverType.L1R_LR;
+		if (lines.get(2).equals("L2R_LR_DUAL")) this.solverType = SolverType.L2R_LR_DUAL;
+		if (lines.get(2).equals("L2R_L2LOSS_SVR")) this.solverType = SolverType.L2R_L2LOSS_SVR;
+		if (lines.get(2).equals("L2R_L2LOSS_SVR_DUAL")) this.solverType = SolverType.L2R_L2LOSS_SVR_DUAL;
+		if (lines.get(2).equals("L2R_L1LOSS_SVR_DUAL")) this.solverType = SolverType.L2R_L1LOSS_SVR_DUAL;
+		this.c = Double.parseDouble(lines.get(4));
+		this.eps = Double.parseDouble(lines.get(6));
+		File modelFile = new File(filename + "__.__model.txt");
+		if (modelFile.exists())
+			model = Model.load(modelFile);
+        return this;
     }
 
 }
