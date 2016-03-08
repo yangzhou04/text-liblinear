@@ -82,7 +82,7 @@ public class CountVectorizer implements Serializable {
                     }
                 });
     	
-    	if (input.get(0) instanceof String) {
+    	if (input.get(0) instanceof String) { // token list
     		try {
     			List<Entry<Integer, Integer>> transed = Lists.newArrayList();
     			Multiset<String> counter = HashMultiset.create();
@@ -104,13 +104,12 @@ public class CountVectorizer implements Serializable {
 				throw new IllegalArgumentException("Wrong argument type: must "
 	        			+ "be List<String> or List<List<String>>");
 			}
-    	} else if (input.get(0) instanceof List) {
+    	} else if (input.get(0) instanceof List) { // list of token list
     		List<List<Entry<Integer, Integer>>> transed = Lists.newArrayList();
-    		Multiset<String> counter = HashMultiset.create();
 			@SuppressWarnings("unchecked")
 			List<List<String>> textX = (List<List<String>>) input;
     		for (List<String> textx : textX) {
-    			
+    			Multiset<String> counter = HashMultiset.create();
     			List<Entry<Integer, Integer>> xi= Lists.newArrayList();
     			for (String token : textx) {
     				counter.add(token);

@@ -45,12 +45,50 @@ public class TextLiblinear implements Serializable {
         this.eps = eps;
     }
 
-    public void fit(List<List<Entry<Integer, Integer>>> X,
-            List<Integer> y) {
-        if (X.size() != y.size())
+    public <E> TextLiblinear fit(List<E> inputX, List<Integer> y) {
+    	if (inputX.size() != y.size())
             throw new IllegalArgumentException(
                     "X and y's length are different");
-
+    	
+    	if (inputX.size() == 0)
+    		throw new IllegalArgumentException(
+                    "Empty training list");
+    	
+    	List<List<Entry<Integer, Integer>>> X = Lists.newArrayList();
+    	
+    	if (inputX.get(0) instanceof Entry) { // only one instance
+    		try {
+    			@SuppressWarnings("unchecked")
+				List<Entry<Integer, Integer>> x = (List<Entry<Integer, Integer>>)inputX;
+    			X.add(x);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("X's type must be "
+	    				+ "List<List<Entry<Integer, Integer>>> "
+	    				+ "or List<Entry<Integer, Integer>>");
+			}
+    	} else if (inputX.get(0) instanceof List){ // instances
+    		try {
+    			@SuppressWarnings("unchecked")
+				List<List<Entry<Integer, Integer>>> inputX2 = (List<List<Entry<Integer, Integer>>>) inputX;
+				X.addAll(inputX2);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("X's type must be "
+	    				+ "List<List<Entry<Integer, Integer>>> "
+	    				+ "or List<Entry<Integer, Integer>>");
+			}
+    	} else {
+    		throw new IllegalArgumentException("X's type must be "
+    				+ "List<List<Entry<Integer, Integer>>> "
+    				+ "or List<Entry<Integer, Integer>>");
+    	}
+    	
+    	fitHelper(X, y);
+    	
+    	return this;
+    }
+    
+    private TextLiblinear fitHelper(List<List<Entry<Integer, Integer>>> X,
+            List<Integer> y) {
         Problem problem = null;
         File tmp = null;
         try {
@@ -90,16 +128,7 @@ public class TextLiblinear implements Serializable {
         Parameter parameter = new Parameter(solverType, c, eps);
         Linear.disableDebugOutput();
         model = Linear.train(problem, parameter);
-    }
-
-    public void dump(String path) throws IOException {
-        File dst = new File(path);
-        dst.getParentFile().mkdirs();
-        model.save(dst);
-    }
-
-    public void load(String path) throws IOException {
-        model = Model.load(new File(path));
+        return this;
     }
 
     public List<Integer> predictAll(List<List<Entry<Integer, Integer>>> textX) {
