@@ -4,9 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.Writer;
-import java.util.Iterator;
-import java.util.List;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.List;
 import java.util.Map.Entry;
 
 import com.google.common.base.Charsets;
@@ -177,7 +176,7 @@ public class TextLiblinear implements Serializable {
     	w.close();
     }
 
-    public TextLiblinear deserialize(String filename)
+    public static TextLiblinear deserialize(String filename)
             throws IOException, ClassNotFoundException {
     	List<String> lines = Files.readLines(new File(filename), Charsets.UTF_8);
 		if (lines.size() != 7 || !lines.get(1).equals("====") 
@@ -185,24 +184,25 @@ public class TextLiblinear implements Serializable {
 				|| !lines.get(5).equals("====")) 
 			throw new IOException("deserialize file format error");
     	
-		this.bias = Double.parseDouble(lines.get(0));
-		if (lines.get(2).equals("L2R_LR")) this.solverType = SolverType.L2R_LR;
-		if (lines.get(2).equals("L2R_L2LOSS_SVC_DUAL")) this.solverType = SolverType.L2R_L2LOSS_SVC_DUAL;
-		if (lines.get(2).equals("L2R_L2LOSS_SVC")) this.solverType = SolverType.L2R_L2LOSS_SVC;
-		if (lines.get(2).equals("L2R_L1LOSS_SVC_DUAL")) this.solverType = SolverType.L2R_L1LOSS_SVC_DUAL;
-		if (lines.get(2).equals("MCSVM_CS")) this.solverType = SolverType.MCSVM_CS;
-		if (lines.get(2).equals("L1R_L2LOSS_SVC")) this.solverType = SolverType.L1R_L2LOSS_SVC;
-		if (lines.get(2).equals("L1R_LR")) this.solverType = SolverType.L1R_LR;
-		if (lines.get(2).equals("L2R_LR_DUAL")) this.solverType = SolverType.L2R_LR_DUAL;
-		if (lines.get(2).equals("L2R_L2LOSS_SVR")) this.solverType = SolverType.L2R_L2LOSS_SVR;
-		if (lines.get(2).equals("L2R_L2LOSS_SVR_DUAL")) this.solverType = SolverType.L2R_L2LOSS_SVR_DUAL;
-		if (lines.get(2).equals("L2R_L1LOSS_SVR_DUAL")) this.solverType = SolverType.L2R_L1LOSS_SVR_DUAL;
-		this.c = Double.parseDouble(lines.get(4));
-		this.eps = Double.parseDouble(lines.get(6));
+		TextLiblinear textLiblinear = new TextLiblinear();
+		textLiblinear.bias = Double.parseDouble(lines.get(0));
+		if (lines.get(2).equals("L2R_LR")) textLiblinear.solverType = SolverType.L2R_LR;
+		if (lines.get(2).equals("L2R_L2LOSS_SVC_DUAL")) textLiblinear.solverType = SolverType.L2R_L2LOSS_SVC_DUAL;
+		if (lines.get(2).equals("L2R_L2LOSS_SVC")) textLiblinear.solverType = SolverType.L2R_L2LOSS_SVC;
+		if (lines.get(2).equals("L2R_L1LOSS_SVC_DUAL")) textLiblinear.solverType = SolverType.L2R_L1LOSS_SVC_DUAL;
+		if (lines.get(2).equals("MCSVM_CS")) textLiblinear.solverType = SolverType.MCSVM_CS;
+		if (lines.get(2).equals("L1R_L2LOSS_SVC")) textLiblinear.solverType = SolverType.L1R_L2LOSS_SVC;
+		if (lines.get(2).equals("L1R_LR")) textLiblinear.solverType = SolverType.L1R_LR;
+		if (lines.get(2).equals("L2R_LR_DUAL")) textLiblinear.solverType = SolverType.L2R_LR_DUAL;
+		if (lines.get(2).equals("L2R_L2LOSS_SVR")) textLiblinear.solverType = SolverType.L2R_L2LOSS_SVR;
+		if (lines.get(2).equals("L2R_L2LOSS_SVR_DUAL")) textLiblinear.solverType = SolverType.L2R_L2LOSS_SVR_DUAL;
+		if (lines.get(2).equals("L2R_L1LOSS_SVR_DUAL")) textLiblinear.solverType = SolverType.L2R_L1LOSS_SVR_DUAL;
+		textLiblinear.c = Double.parseDouble(lines.get(4));
+		textLiblinear.eps = Double.parseDouble(lines.get(6));
 		File modelFile = new File(filename + "__.__model.txt");
 		if (modelFile.exists())
-			model = Model.load(modelFile);
-        return this;
+			textLiblinear.model = Model.load(modelFile);
+        return textLiblinear;
     }
 
 }

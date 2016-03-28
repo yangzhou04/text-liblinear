@@ -33,8 +33,9 @@ public class LabelEncoder implements Serializable {
         reverseLabelMap.clear();
         for (String texty : textY) {
             if (!labelMap.containsKey(texty)) {
-                labelMap.put(texty, count++);
+                labelMap.put(texty, count);
                 reverseLabelMap.put(count, texty);
+                count++;
             }
         }
         return this;
@@ -66,21 +67,26 @@ public class LabelEncoder implements Serializable {
     	w.close();
     }
 
-    public LabelEncoder deserialize(String filename)
+    public static LabelEncoder deserialize(String filename)
             throws IOException, ClassNotFoundException {
     	List<String> lines = Files.readLines(new File(filename), Charsets.UTF_8);
     	if (lines.size() != 5 || !lines.get(1).equals("====") 
 				|| !lines.get(3).equals("====")) 
 			throw new IOException("deserialize file format error");
     	
-    	this.count = Integer.parseInt(lines.get(0));
-		for (Entry<String, String> e : Splitter.on(",").withKeyValueSeparator(":").split(lines.get(2)).entrySet())
-			this.labelMap.put(e.getKey(), Integer.parseInt(e.getValue()));
-		
-		for (Entry<String, String> e : Splitter.on(",").withKeyValueSeparator(":").split(lines.get(4)).entrySet())
-			this.reverseLabelMap.put(Integer.parseInt(e.getKey()), e.getValue());
-		
-    	return this;
+    	LabelEncoder labelEncoder = new LabelEncoder();
+    	labelEncoder.count = Integer.parseInt(lines.get(0));
+		for (Entry<String, String> e : Splitter.on(",")
+		        .withKeyValueSeparator(":").split(lines.get(2)).entrySet())
+			labelEncoder.labelMap.put(e.getKey(),
+			        Integer.parseInt(e.getValue()));
+
+		for (Entry<String, String> e : Splitter.on(",")
+		        .withKeyValueSeparator(":").split(lines.get(4)).entrySet())
+			labelEncoder.reverseLabelMap.put(Integer.parseInt(e.getKey()),
+			        e.getValue());
+
+    	return labelEncoder;
     }
 
 }
