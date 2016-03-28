@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.Writer;
+import java.util.Iterator;
 import java.util.List;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map.Entry;
@@ -20,6 +21,8 @@ import de.bwaldvogel.liblinear.Model;
 import de.bwaldvogel.liblinear.Parameter;
 import de.bwaldvogel.liblinear.Problem;
 import de.bwaldvogel.liblinear.SolverType;
+import represent.SparseMatrix;
+import represent.SparseVector;
 
 public class TextLiblinear implements Serializable {
 
@@ -28,13 +31,13 @@ public class TextLiblinear implements Serializable {
     public SolverType solverType;
     public double c;
     public double eps;
-    public Model model;
+    private Model model;
 
     public TextLiblinear() {
-        this.bias = 0;
-        this.solverType = SolverType.L2R_L2LOSS_SVC;
+        this.bias = 1;
+        this.solverType = SolverType.L2R_LR;
         this.c = 1;
-        this.eps = 0.01;
+        this.eps = 0.001;
     }
 
     public TextLiblinear(double bias, SolverType solverType, double c,
@@ -45,68 +48,40 @@ public class TextLiblinear implements Serializable {
         this.eps = eps;
     }
 
-    public <E> TextLiblinear fit(List<E> inputX, List<Integer> y) {
-    	if (inputX.size() != y.size())
+    public TextLiblinear fit(SparseVector x, int y) {
+        SparseMatrix X = new SparseMatrix(1, x.getDim());
+        for (int i = 0; i < x.getDim(); i++)
+            X.set(0, i, x.get(i));
+        List<Integer> ys = Lists.newArrayList(y);
+        return fit(X, ys);
+    }
+
+    public TextLiblinear fit(SparseMatrix X, List<Integer> y) {
+        if (X.getDimX() != y.size())
             throw new IllegalArgumentException(
                     "X and y's length are different");
-    	
-    	if (inputX.size() == 0)
-    		throw new IllegalArgumentException(
-                    "Empty training list");
-    	
-    	List<List<Entry<Integer, Integer>>> X = Lists.newArrayList();
-    	
-    	if (inputX.get(0) instanceof Entry) { // only one instance
-    		try {
-    			@SuppressWarnings("unchecked")
-				List<Entry<Integer, Integer>> x = (List<Entry<Integer, Integer>>)inputX;
-    			X.add(x);
-			} catch (Exception e) {
-				throw new IllegalArgumentException("X's type must be "
-	    				+ "List<List<Entry<Integer, Integer>>> "
-	    				+ "or List<Entry<Integer, Integer>>");
-			}
-    	} else if (inputX.get(0) instanceof List){ // instances
-    		try {
-    			@SuppressWarnings("unchecked")
-				List<List<Entry<Integer, Integer>>> inputX2 = (List<List<Entry<Integer, Integer>>>) inputX;
-				X.addAll(inputX2);
-			} catch (Exception e) {
-				throw new IllegalArgumentException("X's type must be "
-	    				+ "List<List<Entry<Integer, Integer>>> "
-	    				+ "or List<Entry<Integer, Integer>>");
-			}
-    	} else {
-    		throw new IllegalArgumentException("X's type must be "
-    				+ "List<List<Entry<Integer, Integer>>> "
-    				+ "or List<Entry<Integer, Integer>>");
-    	}
-    	
-    	fitHelper(X, y);
-    	
-    	return this;
-    }
-    
-    private TextLiblinear fitHelper(List<List<Entry<Integer, Integer>>> X,
-            List<Integer> y) {
+
         Problem problem = null;
         File tmp = null;
+        Writer writer = null;
         try {
-            tmp = File
-                    .createTempFile(String.valueOf(System.currentTimeMillis()),
-                            "");
-            Writer writer =
-                    Files.asCharSink(tmp, Charsets.UTF_8).openBufferedStream();
-            for (int i = 0; i < X.size(); i++) {
+            tmp = File.createTempFile(String.valueOf(
+                    System.currentTimeMillis()), "");
+            writer = Files.asCharSink(tmp, Charsets.UTF_8)
+                    .openBufferedStream();
+
+            for (int i = 0; i < X.getDimX(); i++) {
                 int yi = y.get(i);
-                writer.append(String.valueOf(yi));
+                // liblinear start index from 1
+                writer.append(String.valueOf(yi+1));
                 writer.append(" ");
-                for (Entry<Integer, Integer> x : X.get(i)) {
-                    int xjKey = x.getKey();
-                    int xjVal = x.getValue();
-                    writer.append(String.valueOf(xjKey));
+
+                SparseVector sv = X.getx(i);
+                for (Entry<Integer, Double> e : sv.entrySet()) {
+                    // liblinear start index from 1
+                    writer.append(String.valueOf(e.getKey()+1));
                     writer.append(":");
-                    writer.append(String.valueOf(xjVal));
+                    writer.append(String.valueOf(e.getValue()));
                     writer.append(" ");
                 }
                 writer.append("\n");
@@ -122,52 +97,59 @@ public class TextLiblinear implements Serializable {
         } catch (IOException e) {
             System.err.println(
                     "Writing tmp file error, please check your permission");
+            if (writer != null)
+                try {writer.close();} catch (IOException e1) {}
             System.exit(-1);
         }
-
         Parameter parameter = new Parameter(solverType, c, eps);
         Linear.disableDebugOutput();
         model = Linear.train(problem, parameter);
+
         return this;
     }
 
-    public List<Integer> predictAll(List<List<Entry<Integer, Integer>>> textX) {
-        List<Integer> ret = Lists.newArrayList();
-        for (List<Entry<Integer, Integer>> textx : textX) {
-            ret.add(predictOne(textx));
+    public List<Integer> predict(SparseMatrix X) {
+        List<Integer> ybars = Lists.newArrayList();
+        for (int i = 0; i < X.getDimX(); i++) {
+            SparseVector x = X.getx(i);
+            ybars.add(predict(x));
         }
-        return ret;
+        return ybars;
     }
 
-    public int predictOne(List<Entry<Integer, Integer>> x) {
-        Feature[] instance = new Feature[x.size()];
+    public int predict(SparseVector x) {
+        Feature[] instance = new Feature[x.getNonZeroDim()];
         int i = 0;
-        for (Entry<Integer, Integer> entry : x) {
-            instance[i++] = new FeatureNode(entry.getKey(), entry.getValue());
+        for (Entry<Integer, Double> entry : x.entrySet()) {
+            // liblinear predict index start from 1
+            instance[i++] = new FeatureNode(entry.getKey()+1, entry.getValue());
         }
-        return (int) Linear.predict(model, instance);
+        // liblinear ybar index start from 1
+        return (int) Linear.predict(model, instance) - 1;
     }
-    
-    public List<Entry<Integer, Double>> predictProbAll(List<List<Entry<Integer, Integer>>> X) {
-    	List<Entry<Integer, Double>> ret = Lists.newArrayList();
-        for (List<Entry<Integer, Integer>> textx : X) {
-            ret.add(predictProbOne(textx));
+
+    public List<Entry<Integer, Double>> predictProb(SparseMatrix X) {
+        List<Entry<Integer, Double>> ybarsWithProb = Lists.newArrayList();
+        for (int i = 0; i < X.getDimX(); i++) {
+            SparseVector x = X.getx(i);
+            ybarsWithProb.add(predictProb(x));
         }
-        return ret;
+        return ybarsWithProb;
     }
-    
-    public Entry<Integer, Double> predictProbOne(List<Entry<Integer, Integer>> x) {
-    	Feature[] instance = new Feature[x.size()];
+
+    public Entry<Integer, Double> predictProb(SparseVector x) {
+        Feature[] instance = new Feature[x.getNonZeroDim()];
         int i = 0;
-        for (Entry<Integer, Integer> entry : x) {
-            instance[i++] = new FeatureNode(entry.getKey(), entry.getValue());
+        for (Entry<Integer, Double> entry : x.entrySet()) {
+            // liblinear predict index start from 1
+            instance[i++] = new FeatureNode(entry.getKey()+1, entry.getValue());
         }
-        int ybar = (int) Linear.predict(model, instance);
-        
+        // liblinear ybar index start from 1
+        int ybar = (int) Linear.predict(model, instance) - 1;
+
         double[] probEstimates = new double[model.getNrClass()];
         Linear.predictProbability(model, instance, probEstimates);
-        // liblinear predict index start from 1
-        return new SimpleEntry<Integer, Double>(ybar, probEstimates[ybar-1]);
+        return new SimpleEntry<Integer, Double>(ybar, probEstimates[ybar]);
     }
 
     public void serialize(String filename)

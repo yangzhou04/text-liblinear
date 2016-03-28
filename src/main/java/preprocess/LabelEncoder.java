@@ -27,15 +27,17 @@ public class LabelEncoder implements Serializable {
         reverseLabelMap = Maps.newHashMap();
     }
 
-    public void fit(List<String> textY) {
+    public LabelEncoder fit(List<String> textY) {
+        count = 0;
         labelMap.clear();
         reverseLabelMap.clear();
         for (String texty : textY) {
             if (!labelMap.containsKey(texty)) {
-                labelMap.put(texty, ++count);
+                labelMap.put(texty, count++);
                 reverseLabelMap.put(count, texty);
             }
         }
+        return this;
     }
 
     public List<Integer> transform(List<String> textY) {
@@ -47,10 +49,7 @@ public class LabelEncoder implements Serializable {
     }
 
     public List<Integer> fitTransform(List<String> textY) {
-        labelMap.clear();
-        reverseLabelMap.clear();
-        fit(textY);
-        return transform(textY);
+        return fit(textY).transform(textY);
     }
 
     public String getLabel(int i) {

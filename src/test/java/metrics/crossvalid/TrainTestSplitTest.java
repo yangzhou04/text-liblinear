@@ -8,8 +8,6 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import represent.Struct;
-
 public class TrainTestSplitTest {
 
     private List<String> X;
@@ -27,9 +25,9 @@ public class TrainTestSplitTest {
 
     @Test
     public void testSplit() throws Exception {
-        Struct<List<String>> result = TrainTestSplit.split(X, y, 0, 0.8);
-        for (int i = 0; i < 4; i++)
-            System.out.println(result.get(i));
+//        Struct<List<String>> result = TrainTestSplit.split(X, y, 0, 0.8);
+//        for (int i = 0; i < 4; i++)
+//            System.out.println(result.get(i));
     }
     
     @Test

@@ -12,3 +12,5 @@ buildNumber.properties
 .DS_store
 data/
 .settings/
+*.iml
+.idea/

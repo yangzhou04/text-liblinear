@@ -6,6 +6,7 @@ package preprocess;
 import static org.junit.Assert.*;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,19 +16,17 @@ import org.junit.Test;
  */
 public class NGrammerTest {
 
-    /**
-     * @throws java.lang.Exception
-     */
-    @Before
-    public void setUp() throws Exception {
-    }
+    @Test
+    public void testParse() throws Exception {
+        NGrammer ng = new NGrammer(2, NGrammerType.ACCUMULATE);
+        String s = "1234";
+        Assert.assertEquals("1 2 3 4 12 23 34", ng.parse(s, " "));
+        Assert.assertArrayEquals(new String[]{
+                "1", "2", "3", "4", "12", "23", "34"}, ng.parse(s).toArray());
 
-    /**
-     * @throws java.lang.Exception
-     */
-    @After
-    public void tearDown() throws Exception {
+        ng = new NGrammer(2, NGrammerType.NON_ACCUMULATE);
+        Assert.assertEquals("12 23 34", ng.parse(s, " "));
+        Assert.assertArrayEquals(new String[]{
+                 "12", "23", "34"}, ng.parse(s).toArray());
     }
-
-    
 }

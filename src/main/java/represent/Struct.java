@@ -1,18 +1,34 @@
 package represent;
 
-import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class Struct<T> {
 
-    public List<T> elements;
+    private Map<String, T> namedElements;
     
-    public Struct(T... element) {
-        elements = Lists.newArrayList(element);
+    public Struct() {
+    	namedElements = Maps.newHashMap();
+    }
+    
+    public Struct(Entry<String, T>... namedElements) {
+        this.namedElements = Maps.newHashMap();
+        for (Entry<String, T> namedElement : namedElements)
+        	this.namedElements.put(namedElement.getKey(), namedElement.getValue());
     }
 
-    public T get(int i) {
-        return elements.get(i);
+    public T get(String name) {
+    	return namedElements.get(name);
+    }
+    
+    public boolean containsKey(String name) {
+    	return namedElements.containsKey(name);
+    }
+    
+    public Struct<T> put(String name, T value) {
+    	namedElements.put(name, value);
+    	return this;
     }
 }
