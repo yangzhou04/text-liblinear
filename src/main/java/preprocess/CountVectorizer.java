@@ -56,47 +56,6 @@ public class CountVectorizer implements Serializable {
 		return this;
 	}
 
-//	public <E> CountVectorizer fit(List<E> input)
-//	        throws IllegalArgumentException {
-//		count = 0;
-//		vocabularyMap.clear();
-//		if (input.size() == 0)
-//			return this;
-//
-//		if (input.get(0) instanceof String) { // tokens list
-//			try {
-//				@SuppressWarnings("unchecked")
-//				List<String> textx = (List<String>) input;
-//				for (String token : textx) {
-//					if (!vocabularyMap.containsKey(token))
-//						vocabularyMap.put(token, ++count);
-//				}
-//			} catch (IllegalArgumentException e) {
-//				throw new IllegalArgumentException("Wrong argument type: must "
-//				        + "be List<String> or List<List<String>>");
-//			}
-//		} else if (input.get(0) instanceof List) { // list of tokens list
-//			try {
-//				@SuppressWarnings("unchecked")
-//				List<List<String>> textX = (List<List<String>>) input;
-//				for (List<String> textx : textX) {
-//					for (String token : textx) {
-//						if (!vocabularyMap.containsKey(token))
-//							vocabularyMap.put(token, ++count);
-//					}
-//				}
-//			} catch (Exception e) {
-//				throw new IllegalArgumentException("Wrong argument type: must "
-//				        + "be List<String> or List<List<String>>");
-//			}
-//		} else {
-//			throw new IllegalArgumentException("Wrong argument type: must "
-//			        + "be List<String> or List<List<String>>");
-//		}
-//
-//		return this;
-//	}
-
 	public SparseVector transform(String input) {
 		SparseVector sv = new SparseVector(vocabularyMap.size());
 		Multiset<String> counter = HashMultiset.create();
@@ -105,7 +64,8 @@ public class CountVectorizer implements Serializable {
 		}
 		
 		for (String token : counter.elementSet()) {
-			sv.set(vocabularyMap.get(token), counter.count(token));
+			if (vocabularyMap.containsKey(token))
+				sv.set(vocabularyMap.get(token), counter.count(token));
 		}
 		return sv;
 	}
@@ -120,76 +80,13 @@ public class CountVectorizer implements Serializable {
 			}
 			
 			for (String token : counter.elementSet()) {
-				sm.set(i, vocabularyMap.get(token), counter.count(token));
+				if (vocabularyMap.containsKey(token))
+					sm.set(i, vocabularyMap.get(token), counter.count(token));
 			}
 		}
 		return sm;
 	}
 	
-//	public <E> List<?> transform(List<E> input) {
-//		if (input.size() == 0)
-//			return Lists.newArrayList();
-//
-//		Ordering<Entry<Integer, Integer>> asc = Ordering.natural()
-//		        .onResultOf(new Function<Entry<Integer, Integer>, Integer>() {
-//			        public Integer apply(Entry<Integer, Integer> arg0) {
-//				        return arg0.getKey();
-//			        }
-//		        });
-//
-//		if (input.get(0) instanceof String) { // token list
-//			try {
-//				List<Entry<Integer, Integer>> transed = Lists.newArrayList();
-//				Multiset<String> counter = HashMultiset.create();
-//				@SuppressWarnings("unchecked")
-//				List<String> textx = (List<String>) input;
-//				for (String token : textx) {
-//					counter.add(token);
-//				}
-//				for (String token : counter.elementSet()) {
-//					if (vocabularyMap.containsKey(token)) {
-//						Entry<Integer, Integer> entry =
-//						        new AbstractMap.SimpleEntry<Integer, Integer>(
-//						                vocabularyMap.get(token),
-//						                counter.count(token));
-//						transed.add(entry);
-//					}
-//				}
-//				Collections.sort(transed, asc);
-//				return transed;
-//			} catch (Exception e) {
-//				throw new IllegalArgumentException("Wrong argument type: must "
-//				        + "be List<String> or List<List<String>>");
-//			}
-//		} else if (input.get(0) instanceof List) { // list of token list
-//			List<List<Entry<Integer, Integer>>> transed = Lists.newArrayList();
-//			@SuppressWarnings("unchecked")
-//			List<List<String>> textX = (List<List<String>>) input;
-//			for (List<String> textx : textX) {
-//				Multiset<String> counter = HashMultiset.create();
-//				List<Entry<Integer, Integer>> xi = Lists.newArrayList();
-//				for (String token : textx) {
-//					counter.add(token);
-//				}
-//				for (String token : counter.elementSet()) {
-//					if (vocabularyMap.containsKey(token)) {
-//						Entry<Integer, Integer> entry =
-//						        new AbstractMap.SimpleEntry<Integer, Integer>(
-//						                vocabularyMap.get(token),
-//						                counter.count(token));
-//						xi.add(entry);
-//					}
-//				}
-//				Collections.sort(xi, asc);
-//				transed.add(xi);
-//			}
-//			return transed;
-//		} else {
-//			throw new IllegalArgumentException("Wrong argument type: must "
-//			        + "be List<String> or List<List<String>>");
-//		}
-//	}
-
 	public SparseMatrix fitTransform(List<String> inputs) {
         return fit(inputs).transform(inputs);
 	}
@@ -197,13 +94,6 @@ public class CountVectorizer implements Serializable {
     public SparseVector fitTransform(String input) {
         return fit(input).transform(input);
     }
-
-//	public <E> List<?> fitTransform(List<E> textX) {
-//		count = 0;
-//		vocabularyMap.clear();
-//		fit(textX);
-//		return transform(textX);
-//	}
 
 	public CountVectorizer serialize(String filename) throws IOException {
 		Writer w = Files.asCharSink(new File(filename), Charsets.UTF_8)

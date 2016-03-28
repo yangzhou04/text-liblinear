@@ -34,7 +34,7 @@ public class BinaryVectorizer implements Serializable {
 
         for (String token : splitter.split(input)) {
             if (!vocabularyMap.containsKey(token))
-                vocabularyMap.put(token, ++count);
+                vocabularyMap.put(token, count++);
         }
         return this;
     }
@@ -46,7 +46,7 @@ public class BinaryVectorizer implements Serializable {
         for (String input : inputs) {
             for (String token : splitter.split(input)) {
                 if (!vocabularyMap.containsKey(token))
-                    vocabularyMap.put(token, ++count);
+                    vocabularyMap.put(token, count++);
             }
         }
 
@@ -56,8 +56,8 @@ public class BinaryVectorizer implements Serializable {
     public SparseVector transform(String input) {
         SparseVector sv = new SparseVector(vocabularyMap.size());
         for (String token : splitter.split(input)) {
-            // index start from 1 due to liblinear
-            sv.set(vocabularyMap.get(token)-1, 1);
+        	if (vocabularyMap.containsKey(token))
+        		sv.set(vocabularyMap.get(token), 1);
         }
         return sv;
     }
@@ -67,8 +67,8 @@ public class BinaryVectorizer implements Serializable {
         for (int i = 0; i < inputs.size(); i++) {
             String input = inputs.get(i);
             for (String token : splitter.split(input)) {
-                // index start from 1 due to liblinear
-                sm.set(i, vocabularyMap.get(token)-1, 1);
+            	if (vocabularyMap.containsKey(token))
+            		sm.set(i, vocabularyMap.get(token), 1);
             }
         }
         return sm;
